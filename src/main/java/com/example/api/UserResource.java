@@ -72,4 +72,29 @@ public class UserResource {
                 .entity("{\"error\":\"Failed to create user.\"}").build();
         }
     }
+
+    @PUT
+    @Path("/{id}")
+    public Response updateUser(@PathParam("id") String id, User user) {
+        User existing = mongoService.getUser(id);
+        if (existing == null) {
+            return Response.status(Response.Status.NOT_FOUND).build();
+        }
+        user.setId(id);
+        mongoService.updateUser(user);
+        redisService.cacheUser(user);
+        return Response.ok(user).build();
+    }
+
+    @DELETE
+    @Path("/{id}")
+    public Response deleteUser(@PathParam("id") String id) {
+        User user = mongoService.getUser(id);
+        if (user == null) {
+            return Response.status(Response.Status.NOT_FOUND).build();
+        }
+        mongoService.deleteUser(id);
+        redisService.deleteCachedUser(id);
+        return Response.noContent().build();
+    }
 }

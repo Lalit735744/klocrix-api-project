@@ -41,4 +41,18 @@ public class MongoDBService {
         }
         return users;
     }
+
+    public void updateUser(User user) {
+        Document update = new Document()
+                .append("name", user.getName())
+                .append("email", user.getEmail());
+        collection.updateOne(
+            new Document("_id", new ObjectId(user.getId())),
+            new Document("$set", update)
+        );
+    }
+
+    public void deleteUser(String id) {
+        collection.deleteOne(new Document("_id", new ObjectId(id)));
+    }
 }

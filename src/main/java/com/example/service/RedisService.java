@@ -33,4 +33,8 @@ public class RedisService {
             return null;
         }
     }
+
+    public void deleteCachedUser(String id) {
+        jedis.del("user:" + id);
+    }
 }
