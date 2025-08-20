@@ -7,11 +7,14 @@ import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import org.bson.Document;
 import org.bson.types.ObjectId;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class MongoDBService {
+    private static final Logger logger = LoggerFactory.getLogger(MongoDBService.class);
     private final MongoCollection<Document> collection;
 
     public MongoDBService() {
@@ -21,38 +24,75 @@ public class MongoDBService {
     }
 
     public void createUser(User user) {
-        Document doc = new Document()
-                .append("name", user.getName())
-                .append("email", user.getEmail());
-        collection.insertOne(doc);
-        user.setId(doc.getObjectId("_id").toString());
+        try {
+            Document doc = new Document()
+                    .append("name", user.getName())
+                    .append("email", user.getEmail())
+                    .append("password", user.getPassword());
+            collection.insertOne(doc);
+            user.setId(doc.getObjectId("_id").toString());
+        } catch (Exception e) {
+            logger.error("Failed to create user in MongoDB", e);
+            throw e;
+        }
     }
 
     public User getUser(String id) {
-        Document doc = collection.find(new Document("_id", new ObjectId(id))).first();
-        if (doc == null) return null;
-        return new User(doc.getObjectId("_id").toString(), doc.getString("name"), doc.getString("email"));
+        try {
+            Document doc = collection.find(new Document("_id", new ObjectId(id))).first();
+            if (doc == null) return null;
+            return new User(
+                doc.getObjectId("_id").toString(),
+                doc.getString("name"),
+                doc.getString("email"),
+                doc.getString("password")
+            );
+        } catch (Exception e) {
+            logger.error("Failed to get user from MongoDB", e);
+            throw e;
+        }
     }
 
     public List<User> getAllUsers() {
-        List<User> users = new ArrayList<>();
-        for (Document doc : collection.find()) {
-            users.add(new User(doc.getObjectId("_id").toString(), doc.getString("name"), doc.getString("email")));
+        try {
+            List<User> users = new ArrayList<>();
+            for (Document doc : collection.find()) {
+                users.add(new User(
+                    doc.getObjectId("_id").toString(),
+                    doc.getString("name"),
+                    doc.getString("email"),
+                    doc.getString("password")
+                ));
+            }
+            return users;
+        } catch (Exception e) {
+            logger.error("Failed to get all users from MongoDB", e);
+            throw e;
         }
-        return users;
     }
 
     public void updateUser(User user) {
-        Document update = new Document()
-                .append("name", user.getName())
-                .append("email", user.getEmail());
-        collection.updateOne(
-            new Document("_id", new ObjectId(user.getId())),
-            new Document("$set", update)
-        );
+        try {
+            Document update = new Document()
+                    .append("name", user.getName())
+                    .append("email", user.getEmail())
+                    .append("password", user.getPassword());
+            collection.updateOne(
+                new Document("_id", new ObjectId(user.getId())),
+                new Document("$set", update)
+            );
+        } catch (Exception e) {
+            logger.error("Failed to update user in MongoDB", e);
+            throw e;
+        }
     }
 
     public void deleteUser(String id) {
-        collection.deleteOne(new Document("_id", new ObjectId(id)));
+        try {
+            collection.deleteOne(new Document("_id", new ObjectId(id)));
+        } catch (Exception e) {
+            logger.error("Failed to delete user from MongoDB", e);
+            throw e;
+        }
     }
 }
