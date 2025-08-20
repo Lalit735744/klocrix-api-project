@@ -13,42 +13,63 @@ import java.util.List;
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 public class UserResource {
-    private final MongoDBService mongoService;
-    private final RedisService redisService;
-
-    public UserResource() {
-        this.mongoService = new MongoDBService();
-        this.redisService = new RedisService();
-    }
+    private final MongoDBService mongoService = new MongoDBService();
+    private final RedisService redisService = new RedisService();
 
     @GET
     public Response getUsers() {
-        List<User> users = mongoService.getAllUsers();
-        return Response.ok(users).build();
+        try {
+            List<User> users = mongoService.getAllUsers();
+            return Response.ok(users).build();
+        } catch (Exception e) {
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                .entity("{\"error\":\"Failed to fetch users.\"}").build();
+        }
     }
 
     @GET
     @Path("/{id}")
     public Response getUser(@PathParam("id") String id) {
-        User user = redisService.getCachedUser(id);
-        if (user != null) {
+        if (id == null || id.trim().isEmpty()) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                .entity("{\"error\":\"User ID is required.\"}").build();
+        }
+        try {
+            User user = redisService.getCachedUser(id);
+            if (user != null) {
+                return Response.ok(user).build();
+            }
+            user = mongoService.getUser(id);
+            if (user == null) {
+                return Response.status(Response.Status.NOT_FOUND)
+                    .entity("{\"error\":\"User not found.\"}").build();
+            }
+            redisService.cacheUser(user);
             return Response.ok(user).build();
+        } catch (Exception e) {
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                .entity("{\"error\":\"Failed to fetch user.\"}").build();
         }
-        user = mongoService.getUser(id);
-        if (user == null) {
-            return Response.status(Response.Status.NOT_FOUND).build();
-        }
-        redisService.cacheUser(user);
-        return Response.ok(user).build();
     }
 
     @POST
     public Response createUser(User user) {
-        if (user.getName() == null || user.getEmail() == null) {
-            return Response.status(Response.Status.BAD_REQUEST).entity("Name and email are required").build();
+        if (user == null) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                .entity("{\"error\":\"User data is required.\"}").build();
         }
-        mongoService.createUser(user);
-        redisService.cacheUser(user);
-        return Response.status(Response.Status.CREATED).entity(user).build();
+        if (user.getName() == null || user.getName().trim().isEmpty() ||
+            user.getEmail() == null || user.getEmail().trim().isEmpty()) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                .entity("{\"error\":\"Name and email are required.\"}").build();
+        }
+        try {
+            mongoService.createUser(user);
+            redisService.cacheUser(user);
+            return Response.status(Response.Status.CREATED).entity(user).build();
+        } catch (Exception e) {
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                .entity("{\"error\":\"Failed to create user.\"}").build();
+        }
     }
 }

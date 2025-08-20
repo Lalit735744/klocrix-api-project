@@ -8,7 +8,7 @@ import java.net.URI;
 
 public class Main {
     public static void main(String[] args) {
-        String baseUri = "http://localhost:8080/api";
+        String baseUri = "http://localhost:8080";
         ResourceConfig config = new ResourceConfig().packages("com.example.api");
         Server server = JettyHttpContainerFactory.createServer(URI.create(baseUri), config);
         try {
