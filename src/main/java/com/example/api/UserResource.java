@@ -11,7 +11,7 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@Path("/users")
+@Path("/api/users")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 public class UserResource {
@@ -45,7 +45,7 @@ public class UserResource {
         try {
             User user = redisService.getCachedUser(id);
             if (user != null) {
-                user.setPassword(null); // Remove password from response
+                user.setPassword(null);
                 logger.info("Fetched user from Redis cache: {}", id);
                 return Response.ok(user).build();
             }
